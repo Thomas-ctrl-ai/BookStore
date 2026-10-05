@@ -29,7 +29,6 @@ export async function POST(request: Request) {
 
   try {
     const created = await prisma.$transaction(async (tx) => {
-      await tx.$queryRaw`SELECT pg_advisory_xact_lock(74189903)`;
       if (await tx.adminUser.count() > 0) return false;
       await tx.adminUser.create({
         data: {
@@ -39,10 +38,13 @@ export async function POST(request: Request) {
         },
       });
       return true;
-    });
+    }, { isolationLevel: "Serializable" });
     if (!created) return response({ error: "The owner account has already been created. Sign in at /admin." }, 409);
     return response({ ok: "Owner account created. Sign in at /admin." }, 201);
-  } catch {
+  } catch (error) {
+    const code = typeof error === "object" && error !== null && "code" in error ? String(error.code) : "";
+    if (code === "P2034") return response({ error: "Owner setup was already completed. Sign in at /admin." }, 409);
+    console.error("[admin-bootstrap] Database operation failed", error instanceof Error ? error.name : "unknown error");
     return response({ error: "Could not finish setup. Try again in a moment." }, 500);
   }
 }
