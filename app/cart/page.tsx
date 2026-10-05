@@ -1,0 +1,2 @@
+import{SiteShell}from"@/components/site-shell";import{CartView}from"@/components/cart-view";import type{Metadata}from"next";
+export const metadata:Metadata={title:"Your shopping bag"};export default function CartPage(){return <SiteShell><main className="shell page"><div className="form-wrap"><div className="breadcrumbs">Home / Shopping bag</div><span className="kicker">Your P&amp;K picks</span><h1 className="page-title">Shopping bag</h1><CartView/></div></main></SiteShell>}
