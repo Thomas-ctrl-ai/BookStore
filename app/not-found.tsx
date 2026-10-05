@@ -1,0 +1,2 @@
+import Link from "next/link";import {SiteShell} from "@/components/site-shell";
+export default function NotFound(){return <SiteShell><main className="shell page" style={{textAlign:"center",paddingTop:85}}><span className="kicker">Page not found</span><h1 className="page-title">We couldn’t find that page.</h1><p className="lede" style={{margin:"auto"}}>Try browsing the shop instead.</p><div style={{marginTop:19}}><Link className="button" href="/shop">Browse the shop</Link></div></main></SiteShell>}
