@@ -1,0 +1,9 @@
+"use client";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
+
+export type CartLine={productId:string;slug:string;title:string;priceMmk:number;quantity:number;imageUrl:string|null};
+type CartContextType={items:CartLine[];count:number;subtotal:number;add:(product:Omit<CartLine,"quantity">,qty?:number)=>void;quantity:(id:string,q:number)=>void;remove:(id:string)=>void;clear:()=>void};
+const CartContext=createContext<CartContextType|null>(null);
+export function StoreProvider({children}:{children:ReactNode}) {const [items,setItems]=useState<CartLine[]>([]);const [ready,setReady]=useState(false);useEffect(()=>{try{const saved=localStorage.getItem("pnk-cart-v1");if(saved)setItems(JSON.parse(saved));}catch{localStorage.removeItem("pnk-cart-v1")}setReady(true)},[]);useEffect(()=>{if(ready)localStorage.setItem("pnk-cart-v1",JSON.stringify(items))},[items,ready]);const add=useCallback((product:Omit<CartLine,"quantity">,qty=1)=>setItems(previous=>{const found=previous.find(i=>i.productId===product.productId);return found?previous.map(i=>i.productId===product.productId?{...i,quantity:Math.min(20,i.quantity+qty)}:i):[...previous,{...product,quantity:Math.min(20,qty)}]}),[]);const quantity=useCallback((id:string,q:number)=>setItems(p=>q<1?p.filter(i=>i.productId!==id):p.map(i=>i.productId===id?{...i,quantity:Math.min(20,q)}:i)),[]);const remove=useCallback((id:string)=>setItems(p=>p.filter(i=>i.productId!==id)),[]);const clear=useCallback(()=>setItems([]),[]);const value=useMemo(()=>({items,count:items.reduce((s,i)=>s+i.quantity,0),subtotal:items.reduce((s,i)=>s+i.quantity*i.priceMmk,0),add,quantity,remove,clear}),[items,add,quantity,remove,clear]);return <CartContext.Provider value={value}>{children}</CartContext.Provider>}
+export function useCart(){const value=useContext(CartContext);if(!value)throw new Error("useCart must be within StoreProvider");return value}
