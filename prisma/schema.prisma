@@ -1,0 +1,228 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+}
+enum ProductStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+enum BookOrderStatus {
+  PENDING
+  CONFIRMED
+  PREPARING
+  SHIPPED_READY
+  COMPLETED
+  CANCELLED
+}
+enum PaymentMethod {
+  COD
+  BANK_TRANSFER
+  MOBILE_PAYMENT
+}
+enum PaymentStatus {
+  UNPAID
+  PENDING
+  VERIFICATION
+  PAID
+  FAILED
+  REFUNDED
+}
+enum PrintStatus {
+  RECEIVED
+  QUOTE_REQUIRED
+  QUOTED
+  AWAITING_PAYMENT
+  APPROVED
+  PRINTING
+  READY
+  COMPLETED
+  REJECTED
+  CANCELLED
+}
+
+model AdminUser {
+  id String @id @default(cuid())
+  email String @unique
+  passwordHash String
+  role UserRole @default(ADMIN)
+  active Boolean @default(true)
+  createdAt DateTime @default(now())
+  sessions AdminSession[]
+  auditLogs AuditLog[]
+}
+
+model AdminSession {
+  id String @id @default(cuid())
+  tokenHash String @unique
+  userId String
+  user AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  @@index([userId, expiresAt])
+}
+
+model Category {
+  id String @id @default(cuid())
+  name String @unique
+  slug String @unique
+  description String?
+  sortOrder Int @default(0)
+  active Boolean @default(true)
+  products Product[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Product {
+  id String @id @default(cuid())
+  title String
+  slug String @unique
+  author String?
+  isbn String?
+  description String @db.Text
+  priceMmk Int
+  stock Int @default(0)
+  lowStockThreshold Int @default(5)
+  imageUrl String?
+  tags String[] @default([])
+  featured Boolean @default(false)
+  newArrival Boolean @default(false)
+  bestseller Boolean @default(false)
+  status ProductStatus @default(DRAFT)
+  sampleData Boolean @default(false)
+  categoryId String
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  orderItems BookOrderItem[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([status, categoryId])
+  @@index([status, featured])
+  @@index([status, newArrival])
+  @@index([status, bestseller])
+  @@index([isbn])
+}
+
+model BookOrder {
+  id String @id @default(cuid())
+  orderNumber String @unique
+  customerName String
+  phone String
+  email String?
+  address String @db.Text
+  city String
+  township String
+  deliveryInstructions String? @db.Text
+  subtotalMmk Int
+  deliveryMmk Int
+  totalMmk Int
+  paymentMethod PaymentMethod
+  paymentStatus PaymentStatus @default(UNPAID)
+  status BookOrderStatus @default(PENDING)
+  adminNotes String? @db.Text
+  statusHistory Json
+  idempotencyKey String? @unique
+  items BookOrderItem[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([phone, orderNumber])
+  @@index([status, createdAt])
+}
+
+model BookOrderItem {
+  id String @id @default(cuid())
+  orderId String
+  order BookOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String?
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  titleSnapshot String
+  priceMmk Int
+  quantity Int
+  lineTotalMmk Int
+  @@index([orderId])
+}
+
+model PrintOrder {
+  id String @id @default(cuid())
+  orderNumber String @unique
+  idempotencyKey String? @unique
+  customerName String
+  phone String
+  email String?
+  storageKey String?
+  originalFileName String
+  mimeType String
+  fileSizeBytes Int
+  pageCount Int?
+  printMode String
+  paperSize String
+  duplex Boolean
+  pageRange String
+  copies Int
+  finishing String
+  fulfillment String
+  address String? @db.Text
+  city String?
+  township String?
+  notes String? @db.Text
+  customerConfirmedRights Boolean
+  status PrintStatus @default(RECEIVED)
+  estimatedTotalMmk Int?
+  confirmedQuoteMmk Int?
+  paymentStatus PaymentStatus @default(UNPAID)
+  customerFacingNotes String? @db.Text
+  adminNotes String? @db.Text
+  statusHistory Json
+  fileDeletedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([phone, orderNumber])
+  @@index([status, createdAt])
+}
+
+model PrintPricingRule {
+  id String @id @default(cuid())
+  active Boolean @default(false)
+  rateBwA4Mmk Int?
+  rateColorA4Mmk Int?
+  a3MultiplierBps Int @default(20000)
+  duplexDiscountBps Int @default(0)
+  stapleMmk Int @default(0)
+  spiralMmk Int @default(0)
+  minimumChargeMmk Int @default(0)
+  allowedPaperSizes String[] @default(["A4", "A3"])
+  allowedFinishing String[] @default(["None", "Staple", "Spiral binding"])
+  allowedMimeTypes String[] @default(["application/pdf"])
+  maxFileSizeBytes Int @default(10485760)
+  retentionDays Int @default(30)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model StoreSetting {
+  id String @id @default(cuid())
+  key String @unique
+  value Json
+  updatedAt DateTime @updatedAt
+}
+
+model AuditLog {
+  id String @id @default(cuid())
+  adminUserId String?
+  adminUser AdminUser? @relation(fields: [adminUserId], references: [id], onDelete: SetNull)
+  action String
+  entityType String
+  entityId String
+  changes Json?
+  createdAt DateTime @default(now())
+  @@index([entityType, entityId, createdAt])
+  @@index([adminUserId, createdAt])
+}
