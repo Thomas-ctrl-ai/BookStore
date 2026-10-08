@@ -9,7 +9,7 @@ export const checkoutSchema = z.object({
   address: text(1000), city: text(100), township: text(100),
   deliveryInstructions: z.string().trim().max(1000).optional(),
   paymentMethod: z.enum(["COD", "BANK_TRANSFER", "MOBILE_PAYMENT"]),
-  items: z.array(z.object({ productId: text(60), quantity: z.number().int().min(1).max(20) })).min(1).max(50),
+  items: z.array(z.object({ productId: text(60), selectedLevel: z.string().trim().max(80).optional(), quantity: z.number().int().min(1).max(20) })).min(1).max(50),
   idempotencyKey: text(100),
 });
 
@@ -33,7 +33,7 @@ export const printOrderSchema = z.object({
 const httpsImage = z.union([z.string().url().max(2000).refine(value => new URL(value).protocol === "https:"), z.literal("")]).optional();
 export const productSchema = z.object({
   title: text(200), slug: text(200).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Use a lowercase, hyphenated slug."),
-  author: z.string().trim().max(160).optional(), isbn: z.string().trim().max(40).optional(), level: z.string().trim().max(80).optional(), description: text(5000),
+  author: z.string().trim().max(160).optional(), isbn: z.string().trim().max(40).optional(), level: z.string().trim().max(80).optional(), levels: z.array(z.string().trim().min(1).max(80)).max(40).default([]), description: text(5000),
   priceMmk: z.number().int().min(0).max(2_000_000_000), stock: z.number().int().min(0).max(10_000_000),
   lowStockThreshold: z.number().int().min(0).max(1_000_000).default(5), imageUrl: httpsImage,
   categoryId: text(60), tags: z.array(z.string().trim().min(1).max(40)).max(20).default([]),

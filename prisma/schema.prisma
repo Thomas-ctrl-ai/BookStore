@@ -89,6 +89,7 @@ model Product {
   author String?
   isbn String?
   level String?
+  levels String[] @default([])
   description String @db.Text
   priceMmk Int
   stock Int @default(0)
@@ -145,6 +146,7 @@ model BookOrderItem {
   productId String?
   product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
   titleSnapshot String
+  levelSnapshot String?
   priceMmk Int
   quantity Int
   lineTotalMmk Int
